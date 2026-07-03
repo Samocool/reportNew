@@ -1,38 +1,98 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { reportEntries } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const entries = await db.select().from(reportEntries).orderBy(reportEntries.date);
-  return NextResponse.json(entries);
-}
-
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const [entry] = await db.insert(reportEntries).values(body).returning();
-  return NextResponse.json(entry, { status: 201 });
-}
-
-export async function PUT(req: NextRequest) {
-  const body = await req.json();
-  const { id, ...data } = body;
-  const [entry] = await db
-    .update(reportEntries)
-    .set(data)
-    .where(eq(reportEntries.id, id))
-    .returning();
-  return NextResponse.json(entry);
-}
-
-export async function DELETE(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  try {
+    const entries = await db
+      .select()
+      .from(reportEntries)
+      .orderBy(desc(reportEntries.createdAt));
+    return NextResponse.json(entries);
+  } catch (error) {
+    console.error("Failed to fetch entries:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch entries" },
+      { status: 500 }
+    );
   }
-  await db.delete(reportEntries).where(eq(reportEntries.id, id));
-  return NextResponse.json({ success: true });
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const entry = await db
+      .insert(reportEntries)
+      .values({
+        id: body.id,
+        entryType: body.entryType,
+        date: body.date,
+        minutes: body.minutes,
+        contactName: body.contactName || "",
+        contactAddress: body.contactAddress || "",
+        contactPhone: body.contactPhone || "",
+        nextVisitDate: body.nextVisitDate || "",
+        nextVisitTime: body.nextVisitTime || "",
+        pastInteractionData: body.pastInteractionData || "",
+        territory: body.territory || "",
+      })
+      .returning();
+    return NextResponse.json(entry[0], { status: 201 });
+  } catch (error) {
+    console.error("Failed to create entry:", error);
+    return NextResponse.json(
+      { error: "Failed to create entry" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const entry = await db
+      .update(reportEntries)
+      .set({
+        entryType: body.entryType,
+        date: body.date,
+        minutes: body.minutes,
+        contactName: body.contactName || "",
+        contactAddress: body.contactAddress || "",
+        contactPhone: body.contactPhone || "",
+        nextVisitDate: body.nextVisitDate || "",
+        nextVisitTime: body.nextVisitTime || "",
+        pastInteractionData: body.pastInteractionData || "",
+        territory: body.territory || "",
+      })
+      .where(eq(reportEntries.id, body.id))
+      .returning();
+    return NextResponse.json(entry[0]);
+  } catch (error) {
+    console.error("Failed to update entry:", error);
+    return NextResponse.json(
+      { error: "Failed to update entry" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+    await db.delete(reportEntries).where(eq(reportEntries.id, id));
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete entry:", error);
+    return NextResponse.json(
+      { error: "Failed to delete entry" },
+      { status: 500 }
+    );
+  }
 }
