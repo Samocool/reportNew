@@ -245,17 +245,14 @@ export function ReportEntryForm({ onSubmit, onCancel, entry, defaultEntryType }:
               <FormLabel>{t('Entry Type')}</FormLabel>
               <FormControl>
                 <RadioGroup
-                  onChange={(e) => field.onChange((e.target as HTMLInputElement).value)}
+                  value={field.value}
+                  onChange={field.onChange}
                   className="flex flex-wrap gap-x-4 gap-y-2"
                 >
                   {availableEntryTypes.map((type) => (
                     <FormItem key={type.value} className="flex items-center space-x-2 space-y-0">
                       <FormControl>
-                        <RadioGroupItem 
-                          value={type.value} 
-                          checked={field.value === type.value}
-                          onChange={() => field.onChange(type.value)}
-                        />
+                        <RadioGroupItem value={type.value} />
                       </FormControl>
                       <FormLabel className="font-normal">{t(type.label)}</FormLabel>
                     </FormItem>
